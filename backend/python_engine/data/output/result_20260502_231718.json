@@ -1,0 +1,17 @@
+{
+    "plate": "ABC-586CE",
+    "state": "FCT ABUJA",
+    "nickname": "CENTRE OF UNITY",
+    "confidence": "VERIFIED_STATE_MATCH",
+    "standard_raw": "anuin ABC: 5BGCE",
+    "ai_raw": "{\n  \"state\": \"ABUJA\",\n  \"number\": \"ABC-586CE\",\n  \"slogan\": \"CENTRE OF UNITY\"\n}",
+    "used_night_mode": false,
+    "is_cropped": true,
+    "bounding_box": [
+        265,
+        528,
+        414,
+        625
+    ],
+    "annotated_detection": "C:\\Users\\ademo\\Downloads\\Projects\\PlateSightAI\\Backend\\python_engine\\data\\output\\detections\\1777760202811-940707113_detected.jpg"
+}

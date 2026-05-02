@@ -1,0 +1,17 @@
+{
+    "plate": "EKY-975GS",
+    "state": "LAGOS",
+    "nickname": "CENTRE OF EXCELLENCE",
+    "confidence": "HIGH_CONFIDENCE_AI",
+    "standard_raw": "GHOF",
+    "ai_raw": "{\"state\": \"LAGOS\", \"number\": \"EKY-975GS\", \"slogan\": \"CENTRE OF EXCELLENCE\"}",
+    "used_night_mode": false,
+    "is_cropped": true,
+    "bounding_box": [
+        165,
+        291,
+        238,
+        402
+    ],
+    "annotated_detection": "C:\\Users\\ademo\\Downloads\\Projects\\PlateSightAI\\Backend\\python_engine\\data\\output\\detections\\1777760493079-443970265_detected.jpg"
+}

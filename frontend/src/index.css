@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-display: "Outfit", sans-serif;
+
+  --color-nigeria-green: #008751;
+  --color-plate-blue: #003399;
+}
+
+body {
+  margin: 0;
+}

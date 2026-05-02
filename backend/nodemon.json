@@ -1,0 +1,5 @@
+{
+  "watch": ["server.js", "config", "python_engine"],
+  "ext": "js,json",
+  "ignore": ["data/*", "outputs/*", "node_modules"]
+}

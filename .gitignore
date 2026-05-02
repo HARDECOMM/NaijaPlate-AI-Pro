@@ -1,11 +1,12 @@
 venv/
 __pycache__/
+__init__.py/
 *.pyc
 .env
 node_modules/
 dist/
 build/
 models/*.pt
-tests_compare.py
-tests_fixes.py
+test_compare.py
+test_fixes.py
 debug_fixes.py
