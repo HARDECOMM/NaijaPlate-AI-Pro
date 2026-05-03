@@ -62,11 +62,21 @@ NaijaPlate AI Pro introduces a multi-stage intelligent pipeline:
 ```json
 
 {
-  "plate_number": "GWA120CP",
-  "state": "ABUJA",
-  "area": "Gwagwalada",
-  "confidence": "HIGH",
-  "review_status": "ACCEPT"
+    "plate": "YAB-652CH",
+    "state": "LAGOS",
+    "nickname": "CENTRE OF EXCELLENCE",
+    "confidence": "HIGH_CONFIDENCE_AI",
+    "standard_raw": "0 auuin Yab6s2CH",
+    "ai_raw": "{\n  \"state\": \"ABUJA\",\n  \"number\": \"YAB-652CH\",\n  \"slogan\": \"CENTRE OF UNITY\"\n}",
+    "used_night_mode": false,
+    "is_cropped": true,
+    "bounding_box": [
+        262,
+        478,
+        381,
+        586
+    ],
+    "annotated_detection": "C:\\Users\\ademo\\Downloads\\Projects\\PlateSightAI\\Backend\\python_engine\\data\\output\\detections\\1777759053450-923746684_detected.jpg"
 }
 
 ```
