@@ -1,32 +1,18 @@
+// src/api/analyzeApi.js
+import axios from "axios";
+
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
-export async function analyzePlate(file) {
+export const analyzePlateImage = async (imageFile) => {
   const formData = new FormData();
-  formData.append("image", file);
+  formData.append("image", imageFile); // ✅ must match backend upload.single("image")
 
-  const response = await fetch(`${API_BASE_URL}/api/analyze`, {
-    method: "POST",
-    body: formData,
+  const response = await axios.post(`${API_BASE_URL}/api/analyze`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
 
-  const text = await response.text();
-
-  if (!text) {
-    throw new Error(`Backend returned empty response. Status: ${response.status}`);
-  }
-
-  let data;
-
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error(`Backend returned non-JSON response. Status: ${response.status}`);
-  }
-
-  if (!response.ok) {
-    throw new Error(data?.error || `Request failed with status ${response.status}`);
-  }
-
-  return data;
-}
+  return response.data;
+};
