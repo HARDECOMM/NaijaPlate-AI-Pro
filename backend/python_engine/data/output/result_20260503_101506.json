@@ -1,0 +1,9 @@
+{
+    "plate": "YAB-652CH",
+    "state": "LAGOS",
+    "nickname": "CENTRE OF EXCELLENCE",
+    "confidence": "HIGH_CONFIDENCE_AI",
+    "standard_raw": "",
+    "ai_raw": "{\"state\": \"ABUJA\", \"number\": \"YAB-652CH\", \"slogan\": \"CENTRE OF UNITY\"}",
+    "annotated_detection": "C:\\Users\\ademo\\Downloads\\Projects\\PlateSightAI\\backend\\python_engine\\data\\output\\detections\\1777799684101-663743171_detected.jpg"
+}

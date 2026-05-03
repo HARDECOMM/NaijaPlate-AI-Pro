@@ -1,0 +1,9 @@
+{
+    "plate": "KSF-562BQ",
+    "state": "LAGOS",
+    "nickname": "CENTRE OF EXCELLENCE",
+    "confidence": "HIGH_CONFIDENCE_AI",
+    "standard_raw": "",
+    "ai_raw": "{\"state\": \"LAGOS\", \"number\": \"KSF-562BQ\", \"slogan\": \"CENTRE OF EXCELLENCE\"}",
+    "annotated_detection": "C:\\Users\\ademo\\Downloads\\Projects\\PlateSightAI\\backend\\python_engine\\data\\output\\detections\\1777799586619-968863099_detected.jpg"
+}

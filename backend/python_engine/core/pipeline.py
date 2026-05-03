@@ -1,49 +1,38 @@
 import os
 import json
-import easyocr
 import datetime
 
 from .ocr_engine import perform_standard_ocr, ai_refine_ocr, preprocess_for_night
 from .plate_selector import select_best_plate
 from .prefix_mapper import infer_state_from_plate
 from .detector import PlateDetector
+from .text_cleaner import normalize_plate, validate_nigeria_format  # 👈 ADD THIS
 
-# ✅ Initialize once (IMPORTANT performance fix)
-reader = easyocr.Reader(['en'])
+# Init once
+reader = None  # (keep your existing EasyOCR init outside if already global)
 detector = PlateDetector()
 
-# ✅ Stable base directory (fixes os.getcwd issue)
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
 def run_pipeline(input_image, skip_ai=False, verbose=False):
-    """
-    Main flow: Detection (YOLO) -> Preprocess -> OCR -> AI -> Selection
-    """
 
-    # -----------------------------
-    # Validate input
-    # -----------------------------
     if not os.path.exists(input_image):
-        return {
-            "error": f"File not found: {input_image}"
-        }
+        return {"error": f"File not found: {input_image}"}
 
-    is_video_frame = "frame_process_" in input_image
-
-    if verbose and not is_video_frame:
+    if verbose:
         print(f"\n--- Processing: {input_image} ---")
 
     # -----------------------------
-    # 1. YOLO Detection
+    # YOLO DETECTION
     # -----------------------------
     if verbose:
-        print("[*] Stage 1: Detecting Plate Bounding Box (YOLO)...")
+        print("[*] YOLO detection stage...")
 
     crops, annotated_img_path = detector.detect_and_crop(input_image)
 
-    best_overall_result = None
-    highest_conf_score = -1
+    best_result = None
+    best_score = -1
 
     conf_rank = {
         "VERIFIED_STATE_MATCH": 100,
@@ -55,110 +44,91 @@ def run_pipeline(input_image, skip_ai=False, verbose=False):
     }
 
     # -----------------------------
-    # 2. Process each crop
+    # PROCESS EACH CROP
     # -----------------------------
-    for i, candidate in enumerate(crops):
+    for candidate in crops:
 
         crop_path = candidate["path"]
-        box = candidate["box"]
 
-        if verbose and len(crops) > 1:
-            print(f"[*] Processing Candidate {i+1}/{len(crops)}")
+        # 1. preprocess
+        processed = preprocess_for_night(crop_path)
 
-        # 3. Preprocess
-        processed_image = preprocess_for_night(crop_path)
+        # 2. OCR
+        standard_out = perform_standard_ocr(processed, reader)
+        standard_out = normalize_plate(standard_out)  # 🔥 FIX HERE
 
-        # 4. Standard OCR
-        if verbose:
-            print("    - Running Standard OCR...")
-
-        standard_out = perform_standard_ocr(processed_image, reader)
-
-        # 5. AI OCR
+        # 3. AI OCR (optional)
         ai_raw = "{}"
         if not skip_ai:
-            if verbose:
-                print("    - Running AI Refinement...")
-
             ai_raw = ai_refine_ocr(crop_path)
 
-        # 6. Selection logic
+            # normalize AI output
+            try:
+                ai_json = json.loads(ai_raw)
+                ai_json["number"] = normalize_plate(ai_json.get("number", ""))
+                ai_raw = json.dumps(ai_json)
+            except:
+                pass
+
+        # 4. select best plate
         final_plate, confidence = select_best_plate(standard_out, ai_raw)
 
-        # 7. State mapping
-        ai_state = "NONE"
-        ai_slogan = "NONE"
+        # 🔥 FINAL VALIDATION (CRITICAL FIX)
+        if not validate_nigeria_format(final_plate):
+            confidence = "LOW_CONFIDENCE"
+            final_plate = "NOT_FOUND"
 
+        # 5. state inference
         try:
             ai_data = json.loads(ai_raw) if ai_raw else {}
-            ai_state = ai_data.get("state", "NONE").upper()
-            ai_slogan = ai_data.get("slogan", "NONE").upper()
         except:
-            pass
+            ai_data = {}
 
-        state_info = infer_state_from_plate(final_plate, ai_state, ai_slogan)
+        state_info = infer_state_from_plate(
+            final_plate,
+            ai_data.get("state", "NONE"),
+            ai_data.get("slogan", "NONE")
+        )
 
-        current_result = {
+        result = {
             "plate": final_plate,
             "state": state_info["state"],
             "nickname": state_info["slogan"],
             "confidence": confidence,
             "standard_raw": standard_out,
             "ai_raw": ai_raw,
-            "used_night_mode": processed_image != crop_path,
-            "is_cropped": box is not None,
-            "bounding_box": box,
             "annotated_detection": annotated_img_path
         }
 
         score = conf_rank.get(confidence, 0)
 
-        if score > highest_conf_score and final_plate != "NOT_FOUND":
-            highest_conf_score = score
-            best_overall_result = current_result
+        if score > best_score and final_plate != "NOT_FOUND":
+            best_score = score
+            best_result = result
 
     # -----------------------------
-    # 8. Fallback
+    # FALLBACK
     # -----------------------------
-    if not best_overall_result:
+    if not best_result:
         return {
             "plate": "NOT_FOUND",
             "state": "UNKNOWN",
             "nickname": "N/A",
-            "confidence": "NONE",
-            "standard_raw": "",
-            "ai_raw": "{}",
-            "used_night_mode": False
+            "confidence": "NONE"
         }
 
-    res = best_overall_result
-
     # -----------------------------
-    # 9. Save output JSON
+    # SAVE OUTPUT
     # -----------------------------
-    output_dir = os.path.join(BASE_DIR, "data", "output")
-    os.makedirs(output_dir, exist_ok=True)
+    out_dir = os.path.join(BASE_DIR, "data", "output")
+    os.makedirs(out_dir, exist_ok=True)
 
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_file = os.path.join(output_dir, f"result_{timestamp}.json")
+    file_path = os.path.join(out_dir, f"result_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
 
     try:
-        with open(output_file, "w") as f:
-            json.dump(res, f, indent=4)
+        with open(file_path, "w") as f:
+            json.dump(best_result, f, indent=4)
     except:
         pass
 
-    # -----------------------------
-    # 10. OPTIONAL logs (only if verbose)
-    # -----------------------------
-    if verbose:
-        print("\n==============================")
-        print("SUCCESSFUL ANALYSIS")
-        print("==============================")
-        print(f"PLATE: {res['plate']}")
-        print(f"STATE: {res['state']}")
-        print(f"CONFIDENCE: {res['confidence']}")
-        print("==============================\n")
-
-    # IMPORTANT: return PURE JSON object only (for Node)
-    return res
+    return best_result
