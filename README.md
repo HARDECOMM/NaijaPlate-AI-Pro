@@ -163,8 +163,6 @@ Therefore corrected the state despite OCR ambiguity"
 Input → Detection → Crop → OCR → Gemini → Validation → Output
 
 ---
-
----
 🧠 Key Insight
 
 OCR alone is not reliable for real-world deployment
