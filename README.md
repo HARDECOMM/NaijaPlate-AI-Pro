@@ -6,26 +6,26 @@ AI-powered Nigerian license plate detection and recognition system.
 
 ## 🔍 Overview
 
-NaijaPlate AI Pro is a localized computer vision system designed to accurately detect and recognize Nigerian vehicle license plates. It combines a fine-tuned YOLOv8 model, OCR, and Google Gemini multimodal AI to deliver high-accuracy results even under challenging real-world conditions.
+NaijaPlate AI Pro is a localized computer vision system designed to detect and recognize Nigerian vehicle license plates. It combines a fine-tuned YOLOv8 model, OCR, and Google Gemini multimodal AI to deliver accurate and reliable results even under challenging real-world conditions.
 
 ---
 
 ## ❗ Problem
 
-Vehicle identification in Nigeria is largely manual, slow, and error-prone. Security personnel rely on human logging, leading to mistakes and inefficiencies. Generic OCR systems fail due to Nigerian plate formats, lighting variations, and environmental noise.
+Vehicle identification in Nigeria is largely manual, slow, and error-prone. Generic OCR systems struggle with Nigerian plate formats, lighting conditions, and environmental noise. This leads to incorrect plate readings, wrong state inference, and unreliable automation.
 
 ---
 
 ## ✅ Solution
 
-NaijaPlate AI Pro introduces a multi-stage intelligent pipeline:
+NaijaPlate AI Pro introduces a **multi-stage intelligent pipeline**:
 
-- 🎯 YOLOv8 (best.pt) — Plate detection  
-- ✂️ ROI Cropping — Remove background noise  
-- 🔤 EasyOCR — Extract raw text  
-- 🤖 Gemini AI — Correct OCR errors  
-- 📍 Prefix Validation — Map to State & LGA  
-- 📊 Confidence Scoring — Reliability assessment  
+- 🎯 YOLOv8 (best.pt) — Detects license plates  
+- ✂️ ROI Cropping — Isolates plate region  
+- 🔤 EasyOCR — Extracts raw text (noisy)  
+- 🤖 Gemini AI — Refines and corrects OCR output  
+- 📍 Validation Engine — Applies Nigerian rules (prefix + slogan + format)  
+- 📊 Confidence Scoring — Determines final reliability  
 
 ---
 
@@ -57,45 +57,44 @@ NaijaPlate AI Pro introduces a multi-stage intelligent pipeline:
 ### 2️⃣ Plate Detection
 ![Detection](docs/demo_images/detection.jpg)
 
-> Plate detected using fine-tuned YOLOv8 model (best.pt)
+> YOLOv8 detects the plate using bounding box localization
 
 ---
 
-### 3️⃣ Plate Crop (ROI Extraction)
+### 3️⃣ Plate Crop (ROI)
 ![Crop](docs/demo_images/crop.jpg)
 
 > Extracted region of interest for focused processing
 
 ---
 
-### 4️⃣ Final JSON Result (Structured Output)
+### 4️⃣ Intelligent JSON Output
+
+> ⚠️ This example shows a **real OCR failure corrected by AI**
 
 ```json
 {
   "plate": "YAB-652CH",
-  "state": "LAGOS",
-  "area": "Yaba",
-  "nickname": "CENTRE OF EXCELLENCE",
+  "final_state": "ABUJA",
   "confidence": "HIGH_CONFIDENCE_AI",
 
   "sources": {
     "ocr_raw": "0 auuin Yab6s2CH",
-    "ocr_cleaned": "YAB652CH",
-    "gemini_output": {
+    "ocr_interpretation": {
       "state": "LAGOS",
+      "area": "Yaba",
+      "note": "Incorrect due to OCR prefix misinterpretation"
+    },
+    "gemini_output": {
+      "state": "ABUJA",
       "number": "YAB-652CH",
-      "slogan": "CENTRE OF EXCELLENCE"
+      "slogan": "CENTRE OF UNITY"
     }
   },
 
-  "processing_flags": {
-    "used_night_mode": false,
-    "is_cropped": true
-  },
-
-  "detection": {
-    "bounding_box": [262, 478, 381, 586],
-    "annotated_image": "data/output/detections/detected.jpg"
+  "decision": {
+    "final_state_source": "gemini_output",
+    "reason": "Gemini corrected OCR error using contextual knowledge"
   }
 }
 
@@ -118,41 +117,65 @@ Example:
 - `1 ↔ I`
 - `5 ↔ S`
 
+⚠️ In this case:
+
+"YAB" was misinterpreted as Lagos (Yaba)
+Leading to incorrect state inference
+
 ```
 
 ---
 
 ### 6️⃣ Gemini AI Refinement
 
-- Context understanding  
-- Character correction  
-- Plate format alignment (e.g., ABC-123DE)  
-- State and slogan inference  
+- Context understanding
+- Character correction
+- Nigerian plate format validation
+- State + slogan consistency
 
 ```
 Example Transformation:
 
-Raw OCR: Yab6s2CH
-Refined Output: YAB-652CH
+Raw OCR:        Yab6s2CH  
+Refined Output: YAB-652CH  
+Correct State:  ABUJA
 
 ```
+
+💡 Gemini identified that:
+
+The slogan "CENTRE OF UNITY" belongs to ABUJA, not Lagos
+Therefore corrected the state despite OCR ambiguity"
 
 ---
 
 ### 7️⃣ Final Output (User View)
 
-![Output](docs/demo_images/output.jpg)
-
-✔ Clean plate number  
-✔ State and area identified  
-✔ Confidence score assigned  
-✔ Ready for real-world use 
+✔ Clean plate number
+✔ Correct state inferred (ABUJA)
+✔ OCR errors corrected
+✔ Confidence score assigned
+✔ Ready for real-world use
 
 ---
 
 ### 🔄 Pipeline Flow
 Input → Detection → Crop → OCR → Gemini → Validation → Output
 
+---
+
+---
+🧠 Key Insight
+
+OCR alone is not reliable for real-world deployment
+
+This system improves accuracy by:
+
+- Combining Computer Vision (YOLO)
+- With OCR extraction
+- And Generative AI reasoning (Gemini)
+
+👉 Result: Robust, production-ready plate recognition system
 ---
 
 ## 📸 Demo
@@ -164,7 +187,7 @@ Input → Detection → Crop → OCR → Gemini → Validation → Output
 | Input | ![](docs/demo_images/input.jpg) |
 | Detection | ![](docs/demo_images/detection.jpg) |
 | Crop | ![](docs/demo_images/crop.jpg) |
-| JSON Result | Plate number, state, area, confidence |
+| JSON Result | YAB-652CH, LAGOS, Yaba, CENTRE OF EXCELLENCE, HIGH_CONFIDENCE_AI|
 
 
 ---
