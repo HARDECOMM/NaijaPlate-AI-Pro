@@ -2,15 +2,41 @@ import express from "express";
 import multer from "multer";
 import fs from "fs";
 import cors from "cors";
-import path from "path"; // ✅ ADD THIS
+import path from "path";
 
-import { PYTHON_PATH, PYTHON_MAIN, UPLOAD_DIR } from "./config/paths.js";
+import { PYTHON_PATH, PYTHON_MAIN, UPLOAD_DIR, OUTPUT_DIR } from "./config/paths.js";
 import { runPython } from "./utils/spawnPython.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ FIX: store file WITH extension
+// ✅ CREATE REQUIRED DIRECTORIES (important for Render)
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+
+// ✅ ENV-BASED CORS (PRODUCTION READY)
+const allowedOrigins = process.env.FRONTEND_URLS
+  ? process.env.FRONTEND_URLS.split(",").map((url) => url.trim())
+  : ["http://localhost:5173", "http://127.0.0.1:5173"];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow Postman / server requests (no origin)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked: ${origin}`));
+    },
+  })
+);
+
+app.use(express.json());
+
+// ✅ MULTER STORAGE CONFIG
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, UPLOAD_DIR);
@@ -24,29 +50,36 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// ✅ CORS
-app.use(cors({
-  origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
-}));
-
-app.use(express.json());
-
 // ✅ ROOT ROUTE
 app.get("/", (req, res) => {
   res.send("🚀 PlateSight AI Backend Running");
 });
 
+// ✅ HEALTH CHECK (DEBUGGING)
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    pythonPath: PYTHON_PATH,
+    pythonMain: PYTHON_MAIN,
+  });
+});
+
+// ✅ MAIN ANALYZE ROUTE
 app.post("/api/analyze", upload.single("image"), async (req, res) => {
+  let filePath;
+
   try {
     if (!req.file) {
-      return res.status(400).json({ error: "No image uploaded" });
+      return res.status(400).json({
+        error: "No image uploaded. Use form-data key: image",
+      });
     }
 
-    const filePath = req.file.path;
+    filePath = req.file.path;
 
     console.log("[API] Image received:", filePath);
 
-    // ✅ CHECK PYTHON FILE EXISTS
+    // ✅ Check Python script exists
     if (!fs.existsSync(PYTHON_MAIN)) {
       return res.status(500).json({
         error: "Python main.py not found",
@@ -54,29 +87,25 @@ app.post("/api/analyze", upload.single("image"), async (req, res) => {
       });
     }
 
+    // ✅ Run Python
     const result = await runPython(PYTHON_PATH, [
       PYTHON_MAIN,
       filePath,
       "--json",
     ]);
 
-    console.log("[PYTHON RAW OUTPUT]");
+    console.log("[PYTHON OUTPUT]");
     console.log(result);
 
     let json;
     try {
       json = JSON.parse(result);
-    } catch (err) {
+    } catch {
       return res.status(500).json({
         error: "Invalid JSON from Python",
         raw: result,
       });
     }
-
-    // ✅ DELETE FILE SAFELY
-    try {
-      fs.unlinkSync(filePath);
-    } catch {}
 
     return res.json({
       status: "success",
@@ -87,8 +116,16 @@ app.post("/api/analyze", upload.single("image"), async (req, res) => {
     console.error("[SERVER ERROR]", err);
 
     return res.status(500).json({
-      error: err.toString(),
+      error: err.message || err.toString(),
     });
+
+  } finally {
+    // ✅ Clean uploaded file
+    if (filePath && fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch {}
+    }
   }
 });
 
