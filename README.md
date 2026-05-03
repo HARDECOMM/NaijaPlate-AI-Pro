@@ -52,57 +52,106 @@ NaijaPlate AI Pro introduces a multi-stage intelligent pipeline:
 ### 1️⃣ Input Image
 ![Input](docs/demo_images/input.jpg)
 
+---
+
 ### 2️⃣ Plate Detection
 ![Detection](docs/demo_images/detection.jpg)
 
-### 3️⃣ Plate Crop
+> Plate detected using fine-tuned YOLOv8 model (best.pt)
+
+---
+
+### 3️⃣ Plate Crop (ROI Extraction)
 ![Crop](docs/demo_images/crop.jpg)
 
-### 4️⃣ Final JSON Result
-```json
+> Extracted region of interest for focused processing
 
+---
+
+### 4️⃣ Final JSON Result (Structured Output)
+
+```json
 {
-    "plate": "YAB-652CH",
-    "state": "LAGOS",
-    "nickname": "CENTRE OF EXCELLENCE",
-    "confidence": "HIGH_CONFIDENCE_AI",
-    "standard_raw": "0 auuin Yab6s2CH",
-    "ai_raw": "{\n  \"state\": \"ABUJA\",\n  \"number\": \"YAB-652CH\",\n  \"slogan\": \"CENTRE OF UNITY\"\n}",
+  "plate": "YAB-652CH",
+  "state": "LAGOS",
+  "area": "Yaba",
+  "nickname": "CENTRE OF EXCELLENCE",
+  "confidence": "HIGH_CONFIDENCE_AI",
+
+  "sources": {
+    "ocr_raw": "0 auuin Yab6s2CH",
+    "ocr_cleaned": "YAB652CH",
+    "gemini_output": {
+      "state": "LAGOS",
+      "number": "YAB-652CH",
+      "slogan": "CENTRE OF EXCELLENCE"
+    }
+  },
+
+  "processing_flags": {
     "used_night_mode": false,
-    "is_cropped": true,
-    "bounding_box": [
-        262,
-        478,
-        381,
-        586
-    ],
-    "annotated_detection": "C:\\Users\\ademo\\Downloads\\Projects\\PlateSightAI\\Backend\\python_engine\\data\\output\\detections\\1777759053450-923746684_detected.jpg"
+    "is_cropped": true
+  },
+
+  "detection": {
+    "bounding_box": [262, 478, 381, 586],
+    "annotated_image": "data/output/detections/detected.jpg"
+  }
 }
+
+```
+---
+
+### 5️⃣ OCR Extraction (Raw Layer)
+
+> This is the **initial OCR output**, which may contain noise and misclassifications.
+
+
+```
+Example:
+
+0 auuin Yab6s2CH
+
+⚠️ Common OCR Errors:
+- `0 ↔ O`
+- `2 ↔ Z`
+- `1 ↔ I`
+- `5 ↔ S`
 
 ```
 
 ---
 
-### 5️⃣ OCR Extraction
-*(Raw output may contain errors like 0/O, 2/Z, 1/I)*
-
----
-
 ### 6️⃣ Gemini AI Refinement
+
 - Context understanding  
 - Character correction  
-- Format alignment  
+- Plate format alignment (e.g., ABC-123DE)  
+- State and slogan inference  
+
+```
+Example Transformation:
+
+Raw OCR: Yab6s2CH
+Refined Output: YAB-652CH
+
+```
 
 ---
 
-### 7️⃣ Final Output
+### 7️⃣ Final Output (User View)
+
 ![Output](docs/demo_images/output.jpg)
+
+✔ Clean plate number  
+✔ State and area identified  
+✔ Confidence score assigned  
+✔ Ready for real-world use 
 
 ---
 
 ### 🔄 Pipeline Flow
-nput → Detection → Crop → OCR → Gemini → Validation → Output
-
+Input → Detection → Crop → OCR → Gemini → Validation → Output
 
 ---
 
@@ -116,16 +165,6 @@ nput → Detection → Crop → OCR → Gemini → Validation → Output
 | Detection | ![](docs/demo_images/detection.jpg) |
 | Crop | ![](docs/demo_images/crop.jpg) |
 | JSON Result | Plate number, state, area, confidence |
-
----
-
-### Sample Output
-Plate: GWA120CP
-State: ABUJA
-Area: Gwagwalada
-Confidence: HIGH
-Review Status: ACCEPT
-
 
 
 ---
