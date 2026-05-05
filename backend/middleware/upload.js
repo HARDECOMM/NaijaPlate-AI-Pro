@@ -1,10 +1,18 @@
 import multer from "multer";
-import { PATHS } from "../config/paths.js";
+import path from "path";
+import { UPLOAD_DIR } from "../config/paths.js";
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, PATHS.UPLOADS),
-  filename: (req, file, cb) =>
-    cb(null, `${Date.now()}_${file.originalname}`),
+  destination: (req, file, cb) => {
+    cb(null, UPLOAD_DIR);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || ".jpg";
+    const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+    cb(null, filename);
+  },
 });
 
-export default multer({ storage });
+const upload = multer({ storage });
+
+export default upload;

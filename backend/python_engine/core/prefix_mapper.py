@@ -1,82 +1,105 @@
-from .constants import LGA_STATE_MAP, STATE_SLOGAN_MAP
 import re
 
+from .constants import LGA_STATE_MAP, STATE_SLOGAN_MAP, STATE_ALIASES
+from .text_cleaner import raw_clean
 
-def clean_text(text):
+
+def normalize_state_name(state):
+    if not state:
+        return ""
+
+    state = str(state).upper().strip()
+    state = STATE_ALIASES.get(state, state)
+
+    return state
+
+
+def clean_slogan(text):
     if not text:
         return ""
-    return re.sub(r'[^A-Z0-9]', '', text.upper())
+
+    return re.sub(r"[^A-Z0-9 ]", "", str(text).upper()).strip()
+
+
+def slogan_to_state(ai_slogan):
+    slogan_clean = clean_slogan(ai_slogan)
+
+    if not slogan_clean:
+        return ""
+
+    for state, slogan in STATE_SLOGAN_MAP.items():
+        if slogan and slogan.upper() in slogan_clean:
+            return normalize_state_name(state)
+
+    keyword_map = {
+        "UNITY": "FCT ABUJA",
+        "EXCELLENCE": "LAGOS",
+        "TREASURE": "RIVERS",
+        "PACESETTER": "OYO",
+        "COMMERCE": "KANO",
+        "BIG HEART": "DELTA",
+        "LIGHT OF THE NATION": "ANAMBRA",
+        "GOD": "ABIA",
+        "GATEWAY": "OGUN",
+        "SOLID MINERALS": "NASARAWA",
+    }
+
+    for keyword, state in keyword_map.items():
+        if keyword in slogan_clean:
+            return normalize_state_name(state)
+
+    return ""
 
 
 def infer_state_from_plate(plate_text, ai_state="NONE", ai_slogan="NONE"):
     """
-    Infer Nigerian state from plate prefix + AI hints.
+    Safe decision logic:
+    1. Use prefix if reliable.
+    2. Use AI state/slogan if prefix is unknown.
+    3. If prefix and AI conflict, prefer AI when slogan supports it.
     """
 
-    # -------------------------
-    # 1. Normalize plate text
-    # -------------------------
-    plate_clean = clean_text(plate_text)
-
+    plate_clean = raw_clean(plate_text)
     prefix = plate_clean[:3] if len(plate_clean) >= 3 else ""
 
-    # -------------------------
-    # 2. Prefix mapping (primary)
-    # -------------------------
-    state = LGA_STATE_MAP.get(prefix, "UNKNOWN STATE")
+    prefix_state = normalize_state_name(LGA_STATE_MAP.get(prefix, ""))
+    ai_state_clean = normalize_state_name(ai_state if ai_state != "NONE" else "")
+    slogan_state = slogan_to_state(ai_slogan if ai_slogan != "NONE" else "")
 
-    # -------------------------
-    # 3. AI state fallback (safe match)
-    # -------------------------
-    ai_state_clean = ai_state.upper() if ai_state else ""
+    final_state = "UNKNOWN"
+    decision_source = "unknown"
 
-    if state == "UNKNOWN STATE" and ai_state_clean:
-        for known_state in STATE_SLOGAN_MAP.keys():
-            if known_state == ai_state_clean:
-                state = known_state
-                break
+    # Case 1: AI slogan is strong evidence
+    if slogan_state:
+        final_state = slogan_state
+        decision_source = "ai_slogan"
 
-    # -------------------------
-    # 4. AI slogan mapping (safer matching)
-    # -------------------------
-    ai_slogan_clean = ai_slogan.upper() if ai_slogan else ""
+    # Case 2: AI state is available and prefix is missing
+    elif ai_state_clean and not prefix_state:
+        final_state = ai_state_clean
+        decision_source = "ai_state"
 
-    if state == "UNKNOWN STATE" and ai_slogan_clean:
-        for known_state, slogan in STATE_SLOGAN_MAP.items():
-            if slogan and slogan in ai_slogan_clean:
-                state = known_state
-                break
+    # Case 3: prefix known and no AI contradiction
+    elif prefix_state:
+        final_state = prefix_state
+        decision_source = "prefix"
 
-    # -------------------------
-    # 5. Keyword fallback (STRICTER)
-    # -------------------------
-    if state == "UNKNOWN STATE" and ai_slogan_clean:
-        slogan_keywords = {
-            "SOLID MINERALS": "NASARAWA",
-            "EXCELLENCE": "LAGOS",
-            "PACESETTER": "OYO",
-            "UNITY": "FCT ABUJA",
-            "TREASURE BASE": "RIVERS",
-            "LIBERAL HEART": "KADUNA",
-            "BIG HEART": "DELTA",
-            "LIGHT OF THE NATION": "ANAMBRA",
-            "GOD'S OWN": "ABIA"
-        }
+    # Case 4: fallback
+    elif ai_state_clean:
+        final_state = ai_state_clean
+        decision_source = "ai_state_fallback"
 
-        for kw, mapped_state in slogan_keywords.items():
-            if kw in ai_slogan_clean:
-                state = mapped_state
-                break
+    slogan = STATE_SLOGAN_MAP.get(final_state, "N/A")
 
-    # -------------------------
-    # 6. Final slogan resolution
-    # -------------------------
-    slogan = STATE_SLOGAN_MAP.get(state, "N/A")
-
-    if (not slogan or slogan == "N/A") and ai_slogan_clean:
-        slogan = ai_slogan_clean
+    if slogan == "N/A" and ai_slogan and ai_slogan != "NONE":
+        slogan = clean_slogan(ai_slogan)
 
     return {
-        "state": state,
-        "slogan": slogan
+        "state": final_state,
+        "slogan": slogan,
+        "prefix": prefix,
+        "prefix_state": prefix_state or "UNKNOWN",
+        "ai_state": ai_state_clean or "UNKNOWN",
+        "slogan_state": slogan_state or "UNKNOWN",
+        "decision_source": decision_source,
     }

@@ -1,27 +1,21 @@
 import cv2
 import os
-import numpy as np
 import torch
 from ultralytics import YOLO
+
+from python_engine.config.paths import PATHS, create_dirs
 
 
 class PlateDetector:
     def __init__(self, model_path=None):
-        """
-        Initialize detector with a guaranteed correct model path.
-        """
+        create_dirs()
 
-        # Project root (python_engine -> backend root)
-        self.BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-
-        # Model path
-        self.MODEL_PATH = os.path.join(self.BASE_DIR, "models", "best.pt")
-
-        # Device selection (GPU if available)
+        self.MODEL_PATH = model_path or PATHS["MODEL"]
         self.device = 0 if torch.cuda.is_available() else "cpu"
-        print(f"[*] Using device: {self.device}")
 
-        # Load model
+        print(f"[*] Using device: {self.device}")
+        print(f"[*] Model path: {self.MODEL_PATH}")
+
         if not os.path.exists(self.MODEL_PATH):
             print(f"[!] ERROR: Model not found at {self.MODEL_PATH}")
             self.model = None
@@ -29,58 +23,64 @@ class PlateDetector:
 
         try:
             self.model = YOLO(self.MODEL_PATH)
-            print(f"[*] Plate Detector initialized successfully")
+            print("[*] Plate Detector initialized successfully")
         except Exception as e:
             print(f"[!] Failed to load YOLO model: {e}")
             self.model = None
 
     def detect_and_crop(self, image_path):
-        """
-        Detect plates, crop them, save results, and return structured output.
-        """
+        create_dirs()
 
-        # Output directories
-        data_out = os.path.join(self.BASE_DIR, "data", "output")
-        crops_dir = os.path.join(data_out, "crops")
-        detect_dir = os.path.join(data_out, "detections")
+        crops_dir = PATHS["CROPS"]
+        detect_dir = PATHS["DETECTIONS"]
 
         os.makedirs(crops_dir, exist_ok=True)
         os.makedirs(detect_dir, exist_ok=True)
 
         base_name = os.path.splitext(os.path.basename(image_path))[0]
 
-        # Fallback if model missing
-        if self.model is None:
-            return [{"path": image_path, "box": None}], None
+        img = cv2.imread(image_path)
 
-        # Run YOLO inference
+        if img is None:
+            return [], None
+
+        img_annotated = img.copy()
+        h, w = img.shape[:2]
+
+        detect_name = f"{base_name}_detected.jpg"
+        detect_path = os.path.join(detect_dir, detect_name)
+
+        if self.model is None:
+            cv2.imwrite(detect_path, img_annotated)
+            return [], detect_path
+
         results = self.model.predict(
-            image_path,
-            conf=0.25,
-            imgsz=640,
+            source=image_path,
+            conf=0.10,
+            imgsz=960,
             device=self.device,
             verbose=False
         )
 
-        img = cv2.imread(image_path)
-        if img is None:
-            return [{"path": image_path, "box": None}], None
-
-        img_annotated = img.copy()
         crops = []
 
-        h, w, _ = img.shape
-
-        # -----------------------------
-        # DETECTION LOOP (FIXED)
-        # -----------------------------
         for i, r in enumerate(results):
+            if r.boxes is None or len(r.boxes) == 0:
+                continue
+
             boxes = r.boxes.xyxy.cpu().numpy()
+            confs = r.boxes.conf.cpu().numpy() if r.boxes.conf is not None else []
 
             for j, box in enumerate(boxes):
-                x1, y1, x2, y2 = map(int, box)
+                x1, y1, x2, y2 = map(int, box[:4])
 
-                # Draw bounding box
+                box_w = x2 - x1
+                box_h = y2 - y1
+
+                # reject tiny false boxes
+                if box_w < 40 or box_h < 15:
+                    continue
+
                 cv2.rectangle(
                     img_annotated,
                     (x1, y1),
@@ -89,50 +89,51 @@ class PlateDetector:
                     2
                 )
 
+                label = "PLATE"
+
+                if len(confs) > j:
+                    label = f"PLATE {confs[j]:.2f}"
+
                 cv2.putText(
                     img_annotated,
-                    "PLATE",
-                    (x1, y1 - 10),
+                    label,
+                    (x1, max(25, y1 - 10)),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8,
+                    0.7,
                     (0, 255, 0),
                     2
                 )
 
-                # Add margin
-                mh = int((y2 - y1) * 0.05)
-                mw = int((x2 - x1) * 0.05)
+                # stronger margin for OCR
+                pad_x = max(10, int(box_w * 0.12))
+                pad_y = max(8, int(box_h * 0.18))
 
-                y1_final = max(0, y1 - mh)
-                y2_final = min(h, y2 + mh)
-                x1_final = max(0, x1 - mw)
-                x2_final = min(w, x2 + mw)
+                x1_final = max(0, x1 - pad_x)
+                y1_final = max(0, y1 - pad_y)
+                x2_final = min(w, x2 + pad_x)
+                y2_final = min(h, y2 + pad_y)
 
-                # SAFE CROPPING
-                if y2_final > y1_final and x2_final > x1_final:
-                    crop = img[y1_final:y2_final, x1_final:x2_final]
+                crop = img[y1_final:y2_final, x1_final:x2_final]
 
-                    crop_name = f"{base_name}_plate_{i}_{j}.jpg"
-                    crop_path = os.path.join(crops_dir, crop_name)
+                if crop is None or crop.size == 0:
+                    continue
 
-                    cv2.imwrite(crop_path, crop)
+                crop_name = f"{base_name}_plate_{i}_{j}.jpg"
+                crop_path = os.path.join(crops_dir, crop_name)
 
-                    crops.append({
-                        "path": crop_path,
-                        "box": [x1, y1, x2, y2]
-                    })
+                cv2.imwrite(crop_path, crop)
 
-        # Save annotated detection image
-        detect_name = f"{base_name}_detected.jpg"
-        detect_path = os.path.join(detect_dir, detect_name)
-        
-        # comment this out in production for speed 
+                crops.append({
+                    "path": crop_path,
+                    "box": [x1, y1, x2, y2],
+                    "confidence": float(confs[j]) if len(confs) > j else None
+                })
+
         cv2.imwrite(detect_path, img_annotated)
 
-        # Fallback
         if not crops:
-            print("[*] No plates detected by YOLO. Falling back to full image.")
-            return [{"path": image_path, "box": None}], detect_path
+            print("[*] No plates detected by YOLO.")
+            return [], detect_path
 
         print(f"[*] YOLO detected {len(crops)} plate candidate(s).")
         return crops, detect_path

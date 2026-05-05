@@ -1,15 +1,17 @@
 import os
 import cv2
-import numpy as np
+import json
 from PIL import Image
 
-# ✅ Use Render / system environment variables directly
+from .plate_zone import preprocess_for_main_number
+
+
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 
-# --- INITIALIZE GEMINI ---
 USING_NEW_SDK = False
 _client = None
 _genai_model = None
+_reader = None
 
 
 def get_gemini_instance():
@@ -23,67 +25,110 @@ def get_gemini_instance():
         return None
 
     try:
-        # NEW SDK (google-genai)
         from google import genai
-        if hasattr(genai, 'Client'):
+
+        if hasattr(genai, "Client"):
             _client = genai.Client(api_key=GEMINI_KEY)
             USING_NEW_SDK = True
             return _client
-    except (ImportError, AttributeError, ValueError):
+    except Exception:
         pass
 
     try:
-        # OLD SDK fallback
         import google.generativeai as google_genai
+
         google_genai.configure(api_key=GEMINI_KEY)
-        _genai_model = google_genai.GenerativeModel('gemini-1.5-flash')
+        _genai_model = google_genai.GenerativeModel("gemini-1.5-flash")
         USING_NEW_SDK = False
         return _genai_model
+
     except Exception as e:
         print(f"[!] Gemini init failed: {e}")
         return None
 
 
 def load_ocr():
+    global _reader
+
+    if _reader is not None:
+        return _reader
+
     import easyocr
-    return easyocr.Reader(['en'])
+
+    _reader = easyocr.Reader(["en"], gpu=False)
+    return _reader
 
 
 def preprocess_for_night(image_path):
-    img = cv2.imread(image_path)
-    if img is None:
-        return image_path
-
-    yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
-    avg_brightness = np.mean(yuv[:, :, 0])
-
-    if avg_brightness < 90:
-        print(f"[*] Night detected ({avg_brightness:.2f}). Enhancing...")
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        yuv[:, :, 0] = clahe.apply(yuv[:, :, 0])
-        enhanced_img = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
-
-        enhanced_path = image_path.replace(".jpg", "_night_enhanced.jpg")
-        cv2.imwrite(enhanced_path, enhanced_img)
-        return enhanced_path
-
-    return image_path
+    """
+    Kept for backward compatibility with pipeline.py.
+    Internally uses improved plate preprocessing.
+    """
+    return preprocess_for_main_number(image_path)
 
 
-def perform_standard_ocr(image_path, reader):
+def perform_standard_ocr(image_path, reader=None):
     try:
+        if reader is None:
+            reader = load_ocr()
+
         img = cv2.imread(image_path)
+
         if img is None:
             return ""
 
-        results = reader.readtext(img)
+        h, w = img.shape[:2]
+
+        # Prevent EasyOCR CPU memory crash
+        max_width = 900
+        if w > max_width:
+            scale = max_width / w
+            img = cv2.resize(
+                img,
+                (int(w * scale), int(h * scale)),
+                interpolation=cv2.INTER_AREA
+            )
+
+        results = reader.readtext(img, detail=1, paragraph=False)
         return " ".join([res[1] for res in results]).strip()
+
     except Exception as e:
         print(f"OCR Error: {e}")
         return ""
 
 
+def clean_gemini_json(text):
+    if not text:
+        return "{}"
+
+    text = str(text).strip()
+
+    if text.startswith("```"):
+        text = text.replace("```json", "").replace("```", "").strip()
+
+    start = text.find("{")
+    end = text.rfind("}") + 1
+
+    if start != -1 and end > start:
+        text = text[start:end]
+
+    try:
+        data = json.loads(text)
+
+        return json.dumps({
+            "state": str(data.get("state", "")).upper(),
+            "number": str(data.get("number", "")).upper(),
+            "slogan": str(data.get("slogan", "")).upper()
+        })
+
+    except Exception:
+        return "{}"
+
+
 def ai_refine_ocr(image_path):
+    """
+    Kept with this exact name because pipeline.py imports ai_refine_ocr.
+    """
     instance = get_gemini_instance()
 
     if not instance:
@@ -93,20 +138,36 @@ def ai_refine_ocr(image_path):
     try:
         img = Image.open(image_path)
 
-        prompt = (
-            "You are a professional license plate reader specialized in Nigerian Plates. "
-            "Extract:\n"
-            "1. State (top text)\n"
-            "2. Number (center code like ABC-123XY)\n"
-            "3. Slogan (bottom text)\n\n"
-            "Return ONLY JSON:\n"
-            "{ \"state\": \"...\", \"number\": \"...\", \"slogan\": \"...\" }"
-        )
+        prompt = """
+You are a professional Nigerian vehicle license plate reader.
+
+Analyze ONLY the license plate in this image.
+
+Extract:
+1. state: the Nigerian state or FCT written on the plate
+2. number: the plate number in standard format like ABC-123DE
+3. slogan: the state slogan written on the plate, if visible
+
+Rules:
+- Return ONLY valid JSON
+- No markdown
+- No explanations
+- Do not guess car brand, model, or other text
+- If unsure, use empty string
+- Correct OCR-like mistakes such as 0/O, 2/Z, 1/I, 5/S, 8/B only when context supports it
+
+JSON format:
+{
+  "state": "",
+  "number": "",
+  "slogan": ""
+}
+"""
 
         model_names = [
-            "gemini-3-flash-preview",
-            "gemini-2.0-flash-exp",
-            "gemini-3-pro-preview"
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash-latest",
         ]
 
         last_error = None
@@ -118,20 +179,18 @@ def ai_refine_ocr(image_path):
                         model=model_name,
                         contents=[prompt, img]
                     )
-                    text = response.text.strip()
+                    text = response.text.strip() if response.text else ""
                 else:
                     import google.generativeai as google_genai
+
                     temp_model = google_genai.GenerativeModel(model_name)
                     response = temp_model.generate_content([prompt, img])
-                    text = response.text.strip()
+                    text = response.text.strip() if response.text else ""
 
-                if text:
-                    # Clean markdown wrappers
-                    if text.startswith("```"):
-                        text = text.replace("```json", "").replace("```", "").strip()
+                cleaned = clean_gemini_json(text)
 
-                    if "{" in text and "}" in text:
-                        return text
+                if cleaned != "{}":
+                    return cleaned
 
             except Exception as e:
                 error_msg = str(e).upper()

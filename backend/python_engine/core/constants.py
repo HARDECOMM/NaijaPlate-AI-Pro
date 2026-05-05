@@ -1,28 +1,25 @@
 import re
 
-# -----------------------------
-# Nigerian Plate Format
-# -----------------------------
-NIGERIA_PLATE_PATTERN = r'^[A-Z]{3}-?\d{3,4}[A-Z]{2}$'
+NIGERIA_PLATE_PATTERN = r"^[A-Z]{3}-?\d{3,4}[A-Z]{2}$"
 
-
-# -----------------------------
-# LGA PREFIX → STATE MAP (CLEANED)
-# ONLY VALID 3-LETTER PREFIXES
-# -----------------------------
 LGA_STATE_MAP = {
-
     # Lagos
     "AAA": "LAGOS", "KJA": "LAGOS", "LSR": "LAGOS", "FST": "LAGOS",
     "IKJ": "LAGOS", "MUS": "LAGOS", "EPE": "LAGOS", "BDG": "LAGOS",
-    "YAB": "LAGOS", "AKD": "LAGOS",
+    "AKD": "LAGOS", "APP": "LAGOS", "SMK": "LAGOS", "JJJ": "LAGOS",
+    "FKJ": "LAGOS", "LND": "LAGOS", "KTU": "LAGOS", "EKY": "LAGOS",
+    "KRD": "LAGOS", "GGE": "LAGOS", "LSD": "LAGOS", "KSF": "LAGOS",
+    "AGL": "LAGOS",
 
     # FCT Abuja
     "ABJ": "FCT ABUJA", "ABC": "FCT ABUJA", "GWA": "FCT ABUJA",
-    "KWA": "FCT ABUJA", "BWU": "FCT ABUJA",
+    "BWR": "FCT ABUJA", "KUJ": "FCT ABUJA", "KWL": "FCT ABUJA", 
+    "YAB": "FCT ABUJA",
+
 
     # Rivers
     "PHC": "RIVERS", "OBK": "RIVERS", "DEG": "RIVERS",
+    "ABU": "RIVERS", "ABM": "RIVERS", "OMC": "RIVERS",
 
     # Oyo
     "IBD": "OYO", "OYO": "OYO",
@@ -34,39 +31,19 @@ LGA_STATE_MAP = {
     "KAF": "KADUNA", "ZAK": "KADUNA",
 
     # Delta
-    "WAR": "DELTA", "ASB": "DELTA",
-
-    # Edo
-    "BEN": "EDO",
-
-    # Enugu
-    "ENU": "ENUGU",
-
-    # Anambra
-    "AWK": "ANAMBRA", "ONI": "ANAMBRA",
-
-    # Akwa Ibom
-    "UYO": "AKWA IBOM",
-
-    # Abia
-    "UMU": "ABIA", "ABA": "ABIA",
-
-    # Ogun
-    "ABK": "OGUN", "SGR": "OGUN",
-
-    # Kwara
-    "ILR": "KWARA",
-
-    # Plateau
-    "JOS": "PLATEAU",
-
-    # Kogi
-    "LKJ": "KOGI",
-
-    # Nasarawa
-    "LAF": "NASARAWA", "DHA": "NASARAWA",
+    "WAR": "DELTA", "ASB": "DELTA", "SAP": "DELTA",
 
     # Others
+    "BEN": "EDO",
+    "ENU": "ENUGU",
+    "AWK": "ANAMBRA", "ONI": "ANAMBRA",
+    "UYO": "AKWA IBOM",
+    "UMU": "ABIA", "ABA": "ABIA",
+    "ABK": "OGUN", "SGR": "OGUN", "ABE": "OGUN",
+    "ILR": "KWARA",
+    "JOS": "PLATEAU",
+    "LKJ": "KOGI",
+    "LAF": "NASARAWA", "DHA": "NASARAWA",
     "ADO": "EKITI",
     "AKR": "ONDO",
     "OSG": "OSUN",
@@ -77,27 +54,10 @@ LGA_STATE_MAP = {
     "MAI": "BORNO",
 }
 
-
-# -----------------------------
-# SAFE OCR FIXES (IMPORTANT FIX)
-# ONLY FOR NUMERIC CONTEXT, NOT PREFIXES
-# -----------------------------
-OCR_DIGIT_FIXES = {
-    'O': '0',
-    'I': '1',
-    'Z': '2',
-    'S': '5',
-    'B': '8',
-    'G': '6'
-}
-
-
-# -----------------------------
-# STATE SLOGANS
-# -----------------------------
 STATE_SLOGAN_MAP = {
     "LAGOS": "CENTRE OF EXCELLENCE",
     "FCT ABUJA": "CENTRE OF UNITY",
+    "ABUJA": "CENTRE OF UNITY",
     "RIVERS": "TREASURE BASE OF THE NATION",
     "OYO": "PACESETTER STATE",
     "KANO": "CENTRE OF COMMERCE",
@@ -119,8 +79,13 @@ STATE_SLOGAN_MAP = {
     "NASARAWA": "HOME OF SOLID MINERALS",
     "NIGER": "THE POWER STATE",
     "SOKOTO": "SEAT OF THE CALIPHATE",
-    "TARABA": "NATURE'S GIFT TO THE NATION",
     "YOBE": "PRIDE OF THE SAHEL",
     "BAUCHI": "PEARL OF TOURISM",
     "BORNO": "HOME OF PEACE",
+}
+
+STATE_ALIASES = {
+    "ABUJA": "FCT ABUJA",
+    "FCT": "FCT ABUJA",
+    "FCT ABUJA": "FCT ABUJA",
 }

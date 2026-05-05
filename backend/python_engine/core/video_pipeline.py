@@ -3,20 +3,37 @@ import os
 import json
 import datetime
 from collections import defaultdict
+
+from python_engine.config.paths import PATHS, create_dirs
 from .pipeline import run_pipeline
+from .video_tracker import VehicleTracker
 
 
-def process_video(video_path, sample_rate=15, start_frame=35):
+def process_video(video_path, sample_rate=15, start_frame=35, max_frames=None):
+    """
+    Video prototype pipeline:
+    1. Samples frames from video
+    2. Runs fast OCR pipeline without Gemini
+    3. Groups repeated plate readings
+    4. Saves best frames
+    5. Runs full Gemini refinement once per final candidate
+    """
+
+    create_dirs()
 
     if not os.path.exists(video_path):
-        print(f"Error: Video not found -> {video_path}")
-        return
+        return {
+            "error": f"Video not found: {video_path}",
+            "results": {}
+        }
 
     cap = cv2.VideoCapture(video_path)
 
     if not cap.isOpened():
-        print("Error: Cannot open video")
-        return
+        return {
+            "error": "Cannot open video",
+            "results": {}
+        }
 
     if start_frame:
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
@@ -26,152 +43,121 @@ def process_video(video_path, sample_rate=15, start_frame=35):
 
     print(f"[*] Video loaded | Frames: {total_frames} | FPS: {fps}")
 
-    tracking_history = {}
-    frame_count = start_frame
+    best_dir = os.path.join(PATHS["OUTPUT"], "best_video_frames")
+    temp_dir = os.path.join(PATHS["OUTPUT"], "temp_video_frames")
+    video_results_dir = os.path.join(PATHS["RESULTS"], "video")
 
-    data_out = os.path.join(os.getcwd(), "data", "output")
-    best_dir = os.path.join(data_out, "best_video_frames")
     os.makedirs(best_dir, exist_ok=True)
+    os.makedirs(temp_dir, exist_ok=True)
+    os.makedirs(video_results_dir, exist_ok=True)
 
-    # -----------------------------
-    # FRAME LOOP
-    # -----------------------------
+    tracker = VehicleTracker(iou_threshold=0.35, max_missed=7)
+    frame_count = start_frame
+    processed_count = 0
+
     while True:
         ret, frame = cap.read()
+
         if not ret:
             break
 
-        if frame_count % sample_rate == 0:
+        if max_frames is not None and processed_count >= max_frames:
+            break
 
+        if frame_count % sample_rate == 0:
             print(f"\rProcessing frame {frame_count}/{total_frames}", end="")
 
-            try:
-                # -------------------------
-                # Run pipeline (MEMORY SAFE MODE)
-                # -------------------------
-                result = run_pipeline_from_frame(frame, skip_ai=True)
+            temp_path = os.path.join(
+                temp_dir,
+                f"frame_{frame_count}_{datetime.datetime.now().timestamp()}.jpg"
+            )
 
-                plate = result.get("plate")
+            try:
+                cv2.imwrite(temp_path, frame)
+
+                # Fast mode: skip Gemini while scanning many frames
+                result = run_pipeline(temp_path, skip_ai=True, verbose=False)
+
+                plate = result.get("plate", "NOT_FOUND")
 
                 if not plate or plate == "NOT_FOUND":
                     frame_count += 1
+                    processed_count += 1
                     continue
 
-                # -------------------------
-                # INIT TRACK
-                # -------------------------
-                if plate not in tracking_history:
-                    tracking_history[plate] = {
-                        "hits": 0,
-                        "states": defaultdict(int),
-                        "best_frame": None,
-                        "best_score": -1
-                    }
+                best_frame_name = f"{plate.replace('-', '_')}_frame_{frame_count}.jpg"
+                best_frame_path = os.path.join(best_dir, best_frame_name)
 
-                stats = tracking_history[plate]
-                stats["hits"] += 1
+                tracker.update(result, frame_count, best_frame_path)
+                if result.get("bounding_box") and result.get("plate") != "NOT_FOUND":
+                    # Write only when a track accepts this frame as its current best
+                    current_tracks = tracker.get_active_tracks()
+                    if any(track.best_frame_path == best_frame_path for track in current_tracks):
+                        cv2.imwrite(best_frame_path, frame)
 
-                state = result.get("state", "UNKNOWN")
-                stats["states"][state] += 1
+            except Exception as e:
+                print(f"\n[VIDEO FRAME ERROR] frame={frame_count}: {e}")
 
-                # -------------------------
-                # IMPROVED SCORING
-                # -------------------------
-                conf = result.get("confidence", "NONE")
+            finally:
+                if os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except Exception:
+                        pass
 
-                score_map = {
-                    "VERIFIED_STATE_MATCH": 100,
-                    "HIGH_CONFIDENCE_AI": 90,
-                    "HIGH_CONFIDENCE_STD": 80,
-                    "REFINED_GUESS": 50,
-                    "LOW_CONFIDENCE": 20
-                }
-
-                score = score_map.get(conf, 0) + stats["hits"]  # temporal boost
-
-                if score > stats["best_score"]:
-                    stats["best_score"] = score
-                    stats["best_frame"] = frame.copy()  # MEMORY storage (no disk)
-
-            except:
-                pass
+            processed_count += 1
 
         frame_count += 1
 
     cap.release()
     print("\n")
 
-    # -----------------------------
-    # FINAL AI REFINEMENT
-    # -----------------------------
     final_results = {}
+    final_tracks = tracker.get_final_tracks()
 
-    print(f"[*] Refining {len(tracking_history)} plates...")
+    print(f"[*] Refining {len(final_tracks)} track candidates...")
 
-    for plate, stats in tracking_history.items():
+    for track in final_tracks:
+        best_frame_path = track.best_frame_path
 
-        if stats["best_frame"] is None:
+        if not best_frame_path or not os.path.exists(best_frame_path):
             continue
 
-        majority_state = max(stats["states"], key=stats["states"].get)
+        majority_state = "UNKNOWN"
 
-        # Save best frame ONCE
-        filename = f"{plate.replace('-','_')}_{datetime.datetime.now().timestamp()}.jpg"
-        save_path = os.path.join(best_dir, filename)
+        if track.state_counts:
+            majority_state = max(track.state_counts, key=track.state_counts.get)
 
-        cv2.imwrite(save_path, stats["best_frame"])
+        refined = run_pipeline(best_frame_path, skip_ai=False, verbose=False)
 
-        # Run full pipeline once
-        refined = run_pipeline(save_path, skip_ai=False)
-
-        # State correction logic
-        if refined["state"] == "UNKNOWN STATE":
+        if refined.get("state") in ["UNKNOWN", "UNKNOWN STATE", "", None]:
             refined["state"] = majority_state
 
-        refined["video_hits"] = stats["hits"]
-        final_results[plate] = refined
+        refined["video_hits"] = track.hits
+        refined["best_frame_path"] = best_frame_path
+        refined["video_track_id"] = track.track_id
+        refined["video_candidate"] = track.plate
+        refined["video_state_votes"] = dict(track.state_counts)
 
-    # -----------------------------
-    # SUMMARY
-    # -----------------------------
-    print("\n==============================")
+        final_results[f"{track.plate}_{track.track_id}"] = refined
+
+    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    summary_file = os.path.join(video_results_dir, f"video_summary_{ts}.json")
+
+    with open(summary_file, "w", encoding="utf-8") as f:
+        json.dump(final_results, f, indent=4)
+
+    print("==============================")
     print("VIDEO SUMMARY")
     print("==============================")
 
-    for plate, res in final_results.items():
-        print(f"{plate} | {res['state']} | hits: {res['video_hits']}")
+    for track_key, res in final_results.items():
+        print(f"{track_key} | {res.get('state')} | hits: {res.get('video_hits')}")
 
-    print("==============================\n")
-
-    # -----------------------------
-    # SAVE OUTPUT
-    # -----------------------------
-    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    summary_file = os.path.join(data_out, f"video_summary_{ts}.json")
-
-    with open(summary_file, "w") as f:
-        json.dump(final_results, f, indent=4)
-
+    print("==============================")
     print(f"Saved: {summary_file}")
 
-    return final_results
-
-
-# -----------------------------
-# MEMORY-BASED PIPELINE WRAPPER
-# -----------------------------
-def run_pipeline_from_frame(frame, skip_ai=True):
-    """
-    Avoids disk I/O by feeding frame directly.
-    """
-
-    temp_path = os.path.join(os.getcwd(), "temp_frame.jpg")
-    cv2.imwrite(temp_path, frame)
-
-    result = run_pipeline(temp_path, skip_ai=skip_ai)
-
-    if os.path.exists(temp_path):
-        os.remove(temp_path)
-
-    return result
+    return {
+        "summary_path": summary_file,
+        "results": final_results
+    }
