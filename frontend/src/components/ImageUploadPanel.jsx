@@ -1,12 +1,13 @@
 import { Camera, Upload, Search, Zap } from "lucide-react";
 
 export default function ImageUploadPanel({
-  image,
+  previewUrl,
+  fileType,
   result,
   isProcessing,
   fileInputRef,
   handleFileUpload,
-  processImage,
+  processFile,
 }) {
   return (
     <section className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
@@ -23,26 +24,34 @@ export default function ImageUploadPanel({
           className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors font-medium text-sm"
         >
           <Upload className="w-4 h-4" />
-          Select Image
+          Select Image or Video
         </button>
 
         <input
           type="file"
           ref={fileInputRef}
           className="hidden"
-          accept="image/*"
+          accept="image/*,video/*"
           onChange={handleFileUpload}
         />
       </div>
 
       <div className="p-8 aspect-video relative flex items-center justify-center bg-slate-100/50">
-        {image ? (
+        {previewUrl ? (
           <div className="relative group w-full h-full">
-            <img
-              src={image}
-              className="w-full h-full object-contain rounded-xl shadow-lg transition-opacity duration-300"
-              alt="Plate preview"
-            />
+            {fileType === "video" ? (
+              <video
+                src={previewUrl}
+                className="w-full h-full object-contain rounded-xl shadow-lg"
+                controls
+              />
+            ) : (
+              <img
+                src={previewUrl}
+                className="w-full h-full object-contain rounded-xl shadow-lg transition-opacity duration-300"
+                alt="Plate preview"
+              />
+            )}
 
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none rounded-xl" />
 
@@ -58,7 +67,7 @@ export default function ImageUploadPanel({
               <Camera className="w-8 h-8" />
             </div>
 
-            <p className="text-slate-400 font-medium">No image selected</p>
+            <p className="text-slate-400 font-medium">No file selected</p>
           </div>
         )}
 
@@ -83,8 +92,8 @@ export default function ImageUploadPanel({
 
       <div className="p-6 bg-slate-50 flex justify-end gap-3">
         <button
-          disabled={!image || isProcessing}
-          onClick={processImage}
+          disabled={!previewUrl || isProcessing}
+          onClick={processFile}
           className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center gap-2"
         >
           <Search className="w-5 h-5" />

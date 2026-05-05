@@ -10,7 +10,7 @@ def extract_reused_plate_crops(
     crop_dir,
     reuse_window=10,
     conf=0.10,
-    imgsz=960,
+    imgsz=640,
     pad_x=50,
     pad_y=30,
 ):

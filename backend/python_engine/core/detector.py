@@ -57,7 +57,7 @@ class PlateDetector:
         results = self.model.predict(
             source=image_path,
             conf=0.10,
-            imgsz=960,
+            imgsz=640,
             device=self.device,
             verbose=False
         )

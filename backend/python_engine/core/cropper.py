@@ -22,7 +22,7 @@ def crop_detected_plates(model, image_files, input_dir, crop_dir):
         result = model.predict(
             source=image_path,
             conf=0.25,          # FIXED: reduce false positives
-            imgsz=960,
+            imgsz=640,
             device=0 if hasattr(model, "device") else "cpu",
             verbose=False
         )

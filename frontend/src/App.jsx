@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { analyzePlate } from "./api/api";
+import { analyzeFile } from "./api/api";
 
 import Header from "./components/Header";
 import ImageUploadPanel from "./components/ImageUploadPanel";
@@ -9,8 +9,9 @@ import StrategyCard from "./components/StrategyCard";
 import { AlertCircle, CheckCircle2, RefreshCcw } from "lucide-react";
 
 export default function App() {
-  const [image, setImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [file, setFile] = useState(null);
+  const [fileType, setFileType] = useState("image");
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -22,45 +23,68 @@ export default function App() {
 
     if (selectedFile) {
       setFile(selectedFile);
-      setImage(URL.createObjectURL(selectedFile));
+      setPreviewUrl(URL.createObjectURL(selectedFile));
+      setFileType(selectedFile.type.startsWith("video") ? "video" : "image");
       setResult(null);
       setError(null);
     }
   };
 
-  const processImage = async () => {
+  const processFile = async () => {
     if (!file) return;
 
     setIsProcessing(true);
     setError(null);
+    setResult(null);
 
     try {
-      const backendResponse = await analyzePlate(file);
+      const backendResponse = await analyzeFile(file);
+
+      console.log("API RESPONSE:", backendResponse);
 
       if (backendResponse.status !== "success") {
         throw new Error(backendResponse.error || "Backend analysis failed");
       }
 
       const data = backendResponse.data;
+      const mode = backendResponse.mode;
 
-      setResult({
-        plateNumber: data.plate,
-        state: data.state,
-        type: data.nickname || "Standard",
-        confidence:
-          data.confidence === "VERIFIED_STATE_MATCH"
-            ? "HIGH"
-            : data.confidence?.includes("HIGH")
-            ? "HIGH"
-            : data.confidence?.includes("REFINED")
-            ? "MEDIUM"
-            : "LOW",
-        rawText: data.standard_raw,
-        detectionUrl: data.annotated_detection_url,
-      });
+      if (mode === "video") {
+        const trackList = Object.entries(data.results || {}).map(
+          ([id, track]) => ({ id, ...track })
+        );
+
+        setResult({
+          mode: "video",
+          summaryPath: data.summary_path,
+          tracks: trackList,
+        });
+      } else {
+        setResult({
+          mode: "image",
+          plateNumber: data.plate || "NOT_FOUND",
+          state: data.state || "UNKNOWN",
+          type: data.nickname || "N/A",
+          confidence:
+            data.confidence === "VERIFIED_STATE_MATCH"
+              ? "HIGH"
+              : data.confidence?.includes("HIGH")
+              ? "HIGH"
+              : data.confidence?.includes("REFINED")
+              ? "MEDIUM"
+              : "LOW",
+          rawText: data.standard_raw || data.standard_cleaned || "",
+          detectionUrl: data.annotated_detection_url || null,
+        });
+      }
     } catch (err) {
+      console.error("ANALYSIS ERROR:", err.response?.data || err);
+
       setError(
-        err.message || "Failed to process image. Make sure the backend is running."
+        err.response?.data?.error ||
+          err.response?.data?.raw ||
+          err.message ||
+          "Failed to process file. Make sure the backend is running."
       );
     } finally {
       setIsProcessing(false);
@@ -68,8 +92,9 @@ export default function App() {
   };
 
   const resetPipeline = () => {
-    setImage(null);
+    setPreviewUrl(null);
     setFile(null);
+    setFileType("image");
     setResult(null);
     setError(null);
 
@@ -86,12 +111,13 @@ export default function App() {
         <div className="grid lg:grid-cols-12 gap-8">
           <div className="lg:col-span-7 space-y-6">
             <ImageUploadPanel
-              image={image}
+              previewUrl={previewUrl}
+              fileType={fileType}
               result={result}
               isProcessing={isProcessing}
               fileInputRef={fileInputRef}
               handleFileUpload={handleFileUpload}
-              processImage={processImage}
+              processFile={processFile}
             />
 
             <section className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
@@ -120,7 +146,7 @@ export default function App() {
             <ResultsPanel
               result={result}
               error={error}
-              processImage={processImage}
+              processFile={processFile}
               resetPipeline={resetPipeline}
             />
           </div>
