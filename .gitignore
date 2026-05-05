@@ -1,12 +1,57 @@
-venv/
-__pycache__/
-__init__.py/
-*.pyc
-.env
+# =========================
+# NODE / REACT
+# =========================
 node_modules/
 dist/
 build/
-models/*.pt
+.vite/
+
+# =========================
+# ENV FILES
+# =========================
+.env
+.env.local
+.env.production
+.env.development
+
+# =========================
+# PYTHON
+# =========================
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# =========================
+# LOGS
+# =========================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# UPLOADS / GENERATED FILES
+# =========================
+backend/data/uploads/*
+backend/data/output/*
+
+!backend/data/uploads/.gitkeep
+!backend/data/output/.gitkeep
+
+# =========================
+# TEST / DEBUG FILES
+# =========================
 test_compare.py
 test_fixes.py
 debug_fixes.py
+
+# =========================
+# OS / EDITOR
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
