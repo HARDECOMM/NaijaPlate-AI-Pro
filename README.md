@@ -1,8 +1,3 @@
-Here is your **final README.md (FULL, CLEAN, WITH IMAGES INCLUDED)** — ready to copy and paste directly into GitHub.
-
----
-
-```markdown
 # 🚗 NaijaPlate AI Pro
 
 **AI-powered Nigerian License Plate Detection & Recognition System**
@@ -343,7 +338,7 @@ Computer Vision + OCR + Generative AI
 
 ---
 
-If you want next upgrade, I can help you:
+udate next:
 
 - Add **live demo badge (Vercel link)**
 - Add **GitHub badges (stars, tech, license)**
