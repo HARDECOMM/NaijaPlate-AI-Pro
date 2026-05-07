@@ -7,7 +7,7 @@ export const analyzeFile = async (file) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await axios.post(`${API_BASE_URL}/api/analyze`, formData, {
+  const response = await axios.post(`${API_BASE_URL}/api/analyze-refined`, formData, {
     timeout: 120000,
   });
 

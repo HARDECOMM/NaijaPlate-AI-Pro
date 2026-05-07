@@ -1,7 +1,3 @@
-import os
-
-ENV = os.getenv("APP_ENV", "dev")
-
 SETTINGS = {
     "DEBUG": ENV == "dev",
     "USE_GEMINI": True,

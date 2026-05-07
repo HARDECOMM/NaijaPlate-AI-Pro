@@ -44,7 +44,7 @@ def main():
 
                 result = run_pipeline(
                     input_image=file_path,
-                    skip_ai=False,
+                    skip_ai=True,
                     verbose=False
                 )
 
