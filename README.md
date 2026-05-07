@@ -1,11 +1,3 @@
-title: NaijaPlate
-emoji: 🚗
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-pinned: false
--------------
-
 # 🚗 NaijaPlate AI Pro
 
 ## AI-Powered Nigerian License Plate Detection & Recognition System
