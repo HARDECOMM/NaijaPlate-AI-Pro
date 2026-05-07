@@ -1,12 +1,191 @@
 ---
 
-# 🚀 Live Deployment Architecture
+title: NaijaPlate
+emoji: 🚗
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+-------------
 
-## 🌐 Production System Architecture
+# 🚗 NaijaPlate AI Pro
 
-NaijaPlate AI Pro is deployed using a **distributed modern AI architecture** for scalability, maintainability, and optimized ML inference.
+## AI-Powered Nigerian License Plate Detection & Recognition System
 
-### 🔗 Deployment Flow
+NaijaPlate AI Pro is a localized AI-powered computer vision system designed to accurately detect, extract, validate, and recognize Nigerian vehicle license plates under real-world conditions.
+
+The system combines:
+
+* YOLOv8 Object Detection
+* OCR Text Extraction
+* Google Gemini AI Refinement
+* Rule-Based Validation
+* Confidence Scoring Engine
+
+The result is a production-ready Nigerian Automatic Number Plate Recognition (ANPR) system optimized for local environments.
+
+---
+
+# 🔍 Overview
+
+Traditional plate recognition systems struggle in Nigerian environments because of:
+
+* Motion blur
+* Low lighting
+* Dirty plates
+* OCR inaccuracies
+* Non-standard plate positioning
+* Environmental noise
+
+NaijaPlate AI Pro introduces a layered AI pipeline that improves reliability using Computer Vision + OCR + Generative AI reasoning.
+
+---
+
+# ❗ Problem Statement
+
+Vehicle identification systems in Nigeria are often:
+
+* Manual
+* Slow
+* Error-prone
+* Difficult to scale
+
+Generic OCR systems fail to properly understand:
+
+* Nigerian plate structures
+* State prefixes
+* Plate slogans
+* Contextual corrections
+
+This leads to:
+
+* Incorrect detections
+* Wrong state identification
+* Poor automation reliability
+
+---
+
+# ✅ Solution
+
+NaijaPlate AI Pro uses a multi-stage intelligent pipeline:
+
+```text
+Input → Detection → Crop → OCR → Gemini AI → Validation → Output
+```
+
+The system performs:
+
+* Accurate plate localization
+* OCR extraction
+* AI-assisted correction
+* Nigerian state inference
+* Confidence scoring
+* Structured API output
+
+---
+
+# 🧠 Core AI Pipeline
+
+## 1️⃣ YOLOv8 Detection
+
+YOLOv8 detects Nigerian license plates using trained custom weights.
+
+Model:
+
+```text
+python_engine/models/best.pt
+```
+
+---
+
+## 2️⃣ ROI Cropping
+
+Detected plates are cropped into regions of interest for focused OCR processing.
+
+---
+
+## 3️⃣ OCR Extraction
+
+EasyOCR extracts raw text from cropped plates.
+
+Example raw OCR output:
+
+```text
+0 auuin Yab6s2CH
+```
+
+---
+
+## 4️⃣ Gemini AI Refinement
+
+Google Gemini AI intelligently refines noisy OCR results.
+
+Example:
+
+```text
+Raw OCR:        Yab6s2CH
+Refined Plate: YAB-652CH
+Correct State: ABUJA
+```
+
+Gemini helps correct:
+
+* Character confusion
+* OCR distortion
+* Contextual state mismatch
+* Invalid formatting
+
+---
+
+## 5️⃣ Validation Engine
+
+The system validates:
+
+* Nigerian plate format
+* State prefix consistency
+* Plate structure
+* Confidence levels
+
+---
+
+# 📊 Example JSON Output
+
+```json
+{
+  "plate": "YAB-652CH",
+  "final_state": "ABUJA",
+  "confidence": "HIGH_CONFIDENCE_AI",
+
+  "sources": {
+    "ocr_raw": "0 auuin Yab6s2CH",
+    "gemini_output": {
+      "state": "ABUJA",
+      "number": "YAB-652CH"
+    }
+  }
+}
+```
+
+---
+
+# 🧠 Key Features
+
+* 🇳🇬 Nigerian plate localization
+* 🤖 AI-powered OCR correction
+* 📍 Prefix-based state inference
+* 📊 Confidence scoring
+* 📦 Structured JSON API output
+* 🎥 Image & Video support
+* ⚡ Real-time inference architecture
+* ☁️ Cloud-deployed ML inference service
+
+---
+
+# 🧩 Production Deployment Architecture
+
+NaijaPlate AI Pro uses a distributed modern AI architecture.
+
+## 🌐 System Architecture
 
 ```text
 Frontend (Vercel)
@@ -18,19 +197,18 @@ ML Inference Service (Hugging Face Spaces)
 
 ---
 
-## 🖥️ Frontend Deployment — Vercel
+# 🖥️ Frontend Deployment — Vercel
 
-The user interface is deployed on Vercel using React + Vite.
+The frontend UI is deployed on Vercel.
 
 ### Responsibilities
 
-* Image/video upload interface
-* Visualization of predictions
-* Detection previews
-* User interactions
-* API communication layer
+* Upload interface
+* Detection visualization
+* User interaction
+* API communication
 
-### Tech Stack
+### Stack
 
 * React
 * Vite
@@ -39,21 +217,19 @@ The user interface is deployed on Vercel using React + Vite.
 
 ---
 
-## ⚙️ Backend Deployment — Render
+# ⚙️ Backend Deployment — Render
 
-The backend API is deployed on Render.
+The backend API orchestration layer runs on Render.
 
 ### Responsibilities
 
-* Request handling
-* Authentication & middleware
-* Upload processing
+* Upload handling
+* Middleware
 * API orchestration
-* Communication with ML inference service
-* Error handling
 * Response formatting
+* Communication with ML inference service
 
-### Tech Stack
+### Stack
 
 * Node.js
 * Express.js
@@ -62,31 +238,30 @@ The backend API is deployed on Render.
 
 ---
 
-## 🤖 ML Inference Service — Hugging Face Spaces
+# 🤖 ML Inference Deployment — Hugging Face Spaces
 
-The Computer Vision + OCR inference engine is deployed independently on Hugging Face Spaces using Docker.
+The ML engine is independently deployed on Hugging Face Spaces using Docker.
 
-### Live ML Service
+## 🔗 Live ML Service
 
-[NaijaPlate Hugging Face Space](https://huggingface.co/spaces/Hardecomm/NaijaPlate?utm_source=chatgpt.com)
+https://huggingface.co/spaces/Hardecomm/NaijaPlate
 
-### Direct Runtime Endpoint
+## 🔗 Direct Runtime Endpoint
 
-[NaijaPlate Live ML Endpoint](https://hardecomm-naijaplate.hf.space?utm_source=chatgpt.com)
+https://hardecomm-naijaplate.hf.space
 
 ### Responsibilities
 
-* YOLOv8 plate detection
-* OCR extraction
-* Gemini AI refinement
-* Confidence scoring
+* YOLO inference
+* OCR processing
+* Gemini refinement
 * Video frame analysis
-* Structured JSON output
+* Confidence scoring
 
 ### ML Stack
 
 * Python
-* YOLOv8 (Ultralytics)
+* YOLOv8
 * EasyOCR
 * OpenCV
 * Google Gemini AI
@@ -94,66 +269,28 @@ The Computer Vision + OCR inference engine is deployed independently on Hugging 
 
 ---
 
-# 🧠 Why This Architecture?
+# ⚡ Why This Architecture?
 
-This distributed deployment architecture solves major AI deployment limitations.
+This architecture improves:
 
-## ✅ Advantages
+* Scalability
+* Maintainability
+* ML isolation
+* Deployment stability
+* Real-time inference performance
 
-### 1️⃣ Lightweight Frontend Deployment
-
-Vercel handles only frontend rendering.
-
-👉 Faster UI performance.
-
----
-
-### 2️⃣ Stable Backend API Layer
-
-Render acts as the orchestration server.
-
-👉 Better scalability and API control.
+Each layer can scale independently.
 
 ---
 
-### 3️⃣ Dedicated AI Inference Environment
-
-Hugging Face Spaces handles GPU/ML workloads independently.
-
-👉 Prevents ML dependencies from crashing frontend/backend deployments.
-
----
-
-### 4️⃣ Easier Scaling
-
-Each layer can scale independently:
-
-* Frontend scaling
-* Backend scaling
-* ML inference scaling
-
----
-
-### 5️⃣ Production-Ready AI System Design
-
-This mirrors real-world enterprise AI infrastructure used in:
-
-* Smart city systems
-* AI surveillance platforms
-* Traffic monitoring systems
-* Intelligent logistics systems
-
----
-
-# 🔌 API Communication Flow
+# 🔌 API Communication
 
 ## Frontend → Backend
 
 ```javascript
-const API_BASE_URL = "https://your-render-api.onrender.com";
+const API_BASE_URL =
+  "https://your-render-backend.onrender.com";
 ```
-
----
 
 ## Backend → ML Service
 
@@ -166,83 +303,144 @@ const ML_SERVICE_URL =
 
 # 📡 Health Check Endpoint
 
-The ML service exposes a live health endpoint:
+The deployed ML service exposes:
 
 ```json
 {
-  "status": "ok",
-  "service": "NaijaPlate ML Service",
-  "message": "YOLO/OCR service is running"
+  "status":"ok",
+  "service":"NaijaPlate ML Service",
+  "message":"YOLO/OCR service is running"
 }
 ```
 
 This confirms:
 
 * Docker deployment successful
-* YOLO model loaded
+* YOLO initialized
 * OCR initialized
-* Service operational
+* ML service operational
 
 ---
 
-# 🧩 Updated System Architecture
+# 🧠 Tech Stack
+
+## Frontend
+
+* React
+* Vite
+* Tailwind CSS
+
+## Backend
+
+* Node.js
+* Express.js
+
+## AI & ML
+
+* YOLOv8
+* EasyOCR
+* Google Gemini AI
+* OpenCV
+
+## Deployment
+
+* Vercel
+* Render
+* Hugging Face Spaces
+* Docker
+
+---
+
+# 📂 Project Structure
 
 ```text
-                ┌──────────────────┐
-                │   React Frontend │
-                │     (Vercel)     │
-                └────────┬─────────┘
-                         │
-                         ▼
-                ┌──────────────────┐
-                │   Node Backend   │
-                │     (Render)     │
-                └────────┬─────────┘
-                         │
-                         ▼
-          ┌────────────────────────────┐
-          │ Hugging Face ML Service    │
-          │ YOLO + OCR + Gemini AI     │
-          └────────────────────────────┘
+NaijaPlate/
+│
+├── frontend/
+│
+├── backend/
+│
+├── ml-service/
+│   ├── app.py
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   │
+│   └── python_engine/
+│       ├── core/
+│       ├── config/
+│       ├── models/
+│       │   └── best.pt
+│       └── main.py
+│
+└── README.md
 ```
 
 ---
 
-# 🚀 Future Scaling Plans
-
-## Planned Improvements
-
-* Real-time CCTV streaming
-* Multi-camera processing
-* GPU inference optimization
-* Async inference queues
-* WebSocket live tracking
-* Multi-frame voting system
-* Vehicle re-identification
-* Cloud GPU deployment
-* AI traffic analytics dashboard
-
----
-
-# 🌍 Real-World Use Cases
+# 🚀 Real-World Applications
 
 NaijaPlate AI Pro can support:
 
-* 🚓 Law enforcement
+* 🚓 Law enforcement systems
 * 🚦 Smart traffic systems
-* 🏢 Estate access automation
-* 📦 Logistics tracking
+* 🏢 Estate gate automation
+* 📦 Logistics verification
 * 🅿️ Smart parking systems
-* 🚘 Vehicle verification systems
+* 🚘 Vehicle verification platforms
+
+---
+
+# ⚠️ Current Challenges
+
+* Motion blur
+* Night-time inference
+* OCR inconsistencies
+* Frame instability in videos
+
+---
+
+# 🔮 Future Improvements
+
+* Multi-frame voting
+* Real-time CCTV integration
+* GPU optimization
+* Vehicle re-identification
+* Traffic analytics dashboard
+* Async inference queues
+* Multi-camera processing
 
 ---
 
 # 👤 Author
 
-**Haruna Adegoke Ademoye**
+## Haruna Adegoke Ademoye
+
 AI/ML Engineer • Computer Vision Engineer • Backend Developer
+
 📍 Lagos, Nigeria
 
-LinkedIn: [Haruna Ademoye LinkedIn](https://linkedin.com/in/haruna-ademoye-859486110?utm_source=chatgpt.com)
+### LinkedIn
 
-Portfolio: [Professional Portfolio](https://professiona-portfolio.netlify.app/?utm_source=chatgpt.com)
+https://linkedin.com/in/haruna-ademoye-859486110
+
+### Portfolio
+
+https://professiona-portfolio.netlify.app/
+
+---
+
+# 💡 Final Note
+
+NaijaPlate AI Pro demonstrates how localized AI systems can solve real-world African mobility and surveillance problems using:
+
+```text
+Computer Vision + OCR + Generative AI
+```
+
+This project represents a strong foundation for:
+
+* Smart city systems
+* AI surveillance
+* Intelligent transportation
+* Automated vehicle verification
+* Real-time Nigerian ANPR infrastructure
