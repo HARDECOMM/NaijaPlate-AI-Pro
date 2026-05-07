@@ -1,5 +1,3 @@
----
-
 title: NaijaPlate
 emoji: 🚗
 colorFrom: blue
