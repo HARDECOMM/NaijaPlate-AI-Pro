@@ -1,4 +1,4 @@
-# 🚗 NaijaPlate AI Pro
+# NaijaPlate AI Pro
 
 ## AI-Powered Nigerian License Plate Detection & Recognition System
 
