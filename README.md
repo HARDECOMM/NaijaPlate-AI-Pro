@@ -1,346 +1,248 @@
-# 🚗 NaijaPlate AI Pro
-
-**AI-powered Nigerian License Plate Detection & Recognition System**
-
 ---
 
-## 🔍 Overview
+# 🚀 Live Deployment Architecture
 
-**NaijaPlate AI Pro** is a localized computer vision system designed to detect and accurately recognize Nigerian vehicle license plates.
+## 🌐 Production System Architecture
 
-It combines:
+NaijaPlate AI Pro is deployed using a **distributed modern AI architecture** for scalability, maintainability, and optimized ML inference.
 
-- YOLOv8 (Object Detection)
-- OCR (Text Extraction)
-- Google Gemini AI (Contextual Refinement)
-- Rule-based Validation Engine
+### 🔗 Deployment Flow
 
-👉 The result is a **robust, production-ready plate recognition system** tailored for Nigerian environments.
-
----
-
-## ❗ Problem
-
-Vehicle identification in Nigeria is:
-
-- Manual  
-- Slow  
-- Error-prone  
-
-Generic OCR systems struggle with:
-
-- Nigerian plate formats  
-- Lighting conditions  
-- Motion blur  
-- Environmental noise  
-
-👉 Result:
-- Incorrect plate readings  
-- Wrong state inference  
-- Unreliable automation  
-
----
-
-## ✅ Solution
-
-NaijaPlate AI Pro introduces a **multi-stage intelligent pipeline**:
-
-- 🎯 **YOLOv8 (`best.pt`)** — Plate detection  
-- ✂️ **ROI Cropping** — Focused region extraction  
-- 🔤 **EasyOCR** — Raw (noisy) text extraction  
-- 🤖 **Gemini AI** — Intelligent correction  
-- 📍 **Validation Engine** — Nigerian plate rules  
-- 📊 **Confidence Scoring** — Reliability measure  
-
----
-
-## 🧩 System Architecture
-
-![Architecture](docs/architecture.png)
-
----
-
-## 🧠 Layered Pipeline
-
-![Layered Pipeline](docs/layered.png)
-
----
-
-## 🤖 OCR + Gemini Enhancement
-
-![OCR Enhancement](docs/ocr_enhancement.png)
-
----
-
-## ⚙️ How It Works (Step-by-Step)
-
-### 🔄 Pipeline Flow
-
+```text
+Frontend (Vercel)
+        ↓
+Backend API (Render)
+        ↓
+ML Inference Service (Hugging Face Spaces)
 ```
 
-Input → Detection → Crop → OCR → Gemini → Validation → Output
+---
 
-````
+## 🖥️ Frontend Deployment — Vercel
+
+The user interface is deployed on Vercel using React + Vite.
+
+### Responsibilities
+
+* Image/video upload interface
+* Visualization of predictions
+* Detection previews
+* User interactions
+* API communication layer
+
+### Tech Stack
+
+* React
+* Vite
+* Axios
+* Tailwind CSS
 
 ---
 
-### 1️⃣ Input Image
+## ⚙️ Backend Deployment — Render
 
-![Input](docs/demo_images/input.jpg)
+The backend API is deployed on Render.
+
+### Responsibilities
+
+* Request handling
+* Authentication & middleware
+* Upload processing
+* API orchestration
+* Communication with ML inference service
+* Error handling
+* Response formatting
+
+### Tech Stack
+
+* Node.js
+* Express.js
+* Multer
+* Axios
 
 ---
 
-### 2️⃣ Plate Detection
+## 🤖 ML Inference Service — Hugging Face Spaces
 
-![Detection](docs/demo_images/detection.jpg)
+The Computer Vision + OCR inference engine is deployed independently on Hugging Face Spaces using Docker.
 
-> YOLOv8 detects the plate using bounding box localization
+### Live ML Service
+
+[NaijaPlate Hugging Face Space](https://huggingface.co/spaces/Hardecomm/NaijaPlate?utm_source=chatgpt.com)
+
+### Direct Runtime Endpoint
+
+[NaijaPlate Live ML Endpoint](https://hardecomm-naijaplate.hf.space?utm_source=chatgpt.com)
+
+### Responsibilities
+
+* YOLOv8 plate detection
+* OCR extraction
+* Gemini AI refinement
+* Confidence scoring
+* Video frame analysis
+* Structured JSON output
+
+### ML Stack
+
+* Python
+* YOLOv8 (Ultralytics)
+* EasyOCR
+* OpenCV
+* Google Gemini AI
+* Docker
 
 ---
 
-### 3️⃣ Plate Crop (ROI)
+# 🧠 Why This Architecture?
 
-![Crop](docs/demo_images/crop.jpg)
+This distributed deployment architecture solves major AI deployment limitations.
 
-> Extracted region of interest for focused processing
+## ✅ Advantages
+
+### 1️⃣ Lightweight Frontend Deployment
+
+Vercel handles only frontend rendering.
+
+👉 Faster UI performance.
 
 ---
 
-### 4️⃣ Intelligent JSON Output
+### 2️⃣ Stable Backend API Layer
 
-> ⚠️ This example shows a **real OCR failure corrected by AI**
+Render acts as the orchestration server.
+
+👉 Better scalability and API control.
+
+---
+
+### 3️⃣ Dedicated AI Inference Environment
+
+Hugging Face Spaces handles GPU/ML workloads independently.
+
+👉 Prevents ML dependencies from crashing frontend/backend deployments.
+
+---
+
+### 4️⃣ Easier Scaling
+
+Each layer can scale independently:
+
+* Frontend scaling
+* Backend scaling
+* ML inference scaling
+
+---
+
+### 5️⃣ Production-Ready AI System Design
+
+This mirrors real-world enterprise AI infrastructure used in:
+
+* Smart city systems
+* AI surveillance platforms
+* Traffic monitoring systems
+* Intelligent logistics systems
+
+---
+
+# 🔌 API Communication Flow
+
+## Frontend → Backend
+
+```javascript
+const API_BASE_URL = "https://your-render-api.onrender.com";
+```
+
+---
+
+## Backend → ML Service
+
+```javascript
+const ML_SERVICE_URL =
+  "https://hardecomm-naijaplate.hf.space";
+```
+
+---
+
+# 📡 Health Check Endpoint
+
+The ML service exposes a live health endpoint:
 
 ```json
 {
-  "plate": "YAB-652CH",
-  "final_state": "ABUJA",
-  "confidence": "HIGH_CONFIDENCE_AI",
-
-  "sources": {
-    "ocr_raw": "0 auuin Yab6s2CH",
-    "ocr_interpretation": {
-      "state": "LAGOS",
-      "area": "Yaba",
-      "note": "Incorrect due to OCR prefix misinterpretation"
-    },
-    "gemini_output": {
-      "state": "ABUJA",
-      "number": "YAB-652CH",
-      "slogan": "CENTRE OF UNITY"
-    }
-  },
-
-  "decision": {
-    "final_state_source": "gemini_output",
-    "reason": "Gemini corrected OCR error using contextual knowledge"
-  }
+  "status": "ok",
+  "service": "NaijaPlate ML Service",
+  "message": "YOLO/OCR service is running"
 }
-````
-
----
-
-### 5️⃣ OCR Extraction (Raw Layer)
-
-Example:
-
-```
-0 auuin Yab6s2CH
 ```
 
-⚠️ Common OCR Errors:
+This confirms:
 
-* `0 ↔ O`
-* `2 ↔ Z`
-* `1 ↔ I`
-* `5 ↔ S`
-
----
-
-### 6️⃣ Gemini AI Refinement
-
-Example transformation:
-
-```
-Raw OCR:        Yab6s2CH  
-Refined Output: YAB-652CH  
-Correct State:  ABUJA
-```
-
-💡 Gemini uses:
-
-* Context understanding
-* Nigerian plate rules
-* State slogan mapping
+* Docker deployment successful
+* YOLO model loaded
+* OCR initialized
+* Service operational
 
 ---
 
-### 7️⃣ Final Output
+# 🧩 Updated System Architecture
 
-✔ Clean plate number
-✔ Correct state inferred
-✔ OCR errors corrected
-✔ Confidence score assigned
-
----
-
-## 🧠 Key Insight
-
-> OCR alone is not reliable for real-world deployment.
-
-This system improves accuracy by combining:
-
-* Computer Vision (YOLO)
-* OCR extraction
-* Generative AI reasoning (Gemini)
-
-👉 Result: **High accuracy under real-world conditions**
-
----
-
-## 🧠 Key Features
-
-* 🇳🇬 Nigerian plate localization
-* 🤖 AI-powered OCR correction
-* 📍 Prefix-based state inference
-* 📊 Confidence scoring
-* 📦 Structured JSON API output
-* 🎥 Image & Video support
-
----
-
-## 🧠 Tech Stack
-
-### Backend
-
-* Node.js (API Layer)
-* Python (ML Engine)
-
-### AI & ML
-
-* YOLOv8 (Ultralytics)
-* EasyOCR
-* Google Gemini AI
-
-### Frontend
-
-* React (Vite)
-
----
-
-## 🚀 Deployment
-
-### 🧪 Local Development
-
-```bash
-# Backend
-cd backend
-npm install
-npm start
-
-# Frontend
-cd frontend
-npm install
-npm run dev
+```text
+                ┌──────────────────┐
+                │   React Frontend │
+                │     (Vercel)     │
+                └────────┬─────────┘
+                         │
+                         ▼
+                ┌──────────────────┐
+                │   Node Backend   │
+                │     (Render)     │
+                └────────┬─────────┘
+                         │
+                         ▼
+          ┌────────────────────────────┐
+          │ Hugging Face ML Service    │
+          │ YOLO + OCR + Gemini AI     │
+          └────────────────────────────┘
 ```
 
 ---
 
-### 🌐 Production Deployment
+# 🚀 Future Scaling Plans
 
-⚠️ Backend uses Python + ML — **NOT suitable for serverless platforms like Vercel**
+## Planned Improvements
 
-#### Recommended:
-
-* Render (MVP deployment)
-* AWS EC2 / DigitalOcean (Production)
-* Docker (Portable deployment)
-* GPU cloud (for scaling and video processing)
-
----
-
-## 📂 Project Structure
-
-```
-NaijaPlate-AI-Pro/
-│
-├── frontend/
-├── backend/
-│   ├── controllers/
-│   ├── routes/
-│   ├── middleware/
-│   ├── python_engine/
-│   │   ├── core/
-│   │   ├── models/
-│   │   │   └── best.pt
-│   │   └── main.py
-│
-├── data/
-├── docs/
-│   ├── architecture.png
-│   ├── layered.png
-│   └── ocr_enhancement.png
-│
-└── README.md
-```
+* Real-time CCTV streaming
+* Multi-camera processing
+* GPU inference optimization
+* Async inference queues
+* WebSocket live tracking
+* Multi-frame voting system
+* Vehicle re-identification
+* Cloud GPU deployment
+* AI traffic analytics dashboard
 
 ---
 
-## 🚀 Real-World Impact
+# 🌍 Real-World Use Cases
 
-NaijaPlate AI Pro enables:
+NaijaPlate AI Pro can support:
 
-* 🔐 Estate security automation
-* 🚓 Law enforcement support
-* 🚦 Traffic monitoring systems
-* 📦 Logistics & fleet tracking
-
-👉 Improves speed, accuracy, and automation.
-
----
-
-## ⚠️ Challenges
-
-* OCR inaccuracies
-* Video frame inconsistency
-* Motion blur & lighting issues
+* 🚓 Law enforcement
+* 🚦 Smart traffic systems
+* 🏢 Estate access automation
+* 📦 Logistics tracking
+* 🅿️ Smart parking systems
+* 🚘 Vehicle verification systems
 
 ---
 
-## 🔮 Next Steps
-
-* Ensemble OCR models
-* Multi-frame voting (video)
-* Plate segmentation models
-* Real-time CCTV integration
-* Scalable API deployment
-
----
-
-## 👤 Author
+# 👤 Author
 
 **Haruna Adegoke Ademoye**
-AI/ML Engineer | Computer Vision
+AI/ML Engineer • Computer Vision Engineer • Backend Developer
 📍 Lagos, Nigeria
 
----
+LinkedIn: [Haruna Ademoye LinkedIn](https://linkedin.com/in/haruna-ademoye-859486110?utm_source=chatgpt.com)
 
-## 💡 Final Note
-
-This project demonstrates how **localized AI systems** can solve real-world problems by combining:
-
-```
-Computer Vision + OCR + Generative AI
-```
-
-👉 A strong foundation for smart city systems, surveillance, and automation in Nigeria
-
-```
-
----
-
-udate next:
-
-- Add **live demo badge (Vercel link)**
-- Add **GitHub badges (stars, tech, license)**
-- Turn this into a **competition-winning documentation (NLNG level)**
-```
+Portfolio: [Professional Portfolio](https://professiona-portfolio.netlify.app/?utm_source=chatgpt.com)
