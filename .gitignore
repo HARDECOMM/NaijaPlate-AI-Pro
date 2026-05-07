@@ -1,57 +1,45 @@
-# =========================
-# NODE / REACT
-# =========================
-node_modules/
-dist/
-build/
-.vite/
-
-# =========================
-# ENV FILES
-# =========================
-.env
-.env.local
-.env.production
-.env.development
-
-# =========================
-# PYTHON
-# =========================
+# Python
 venv/
 .venv/
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 
-# =========================
-# LOGS
-# =========================
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Environment
+.env
 
-# =========================
-# UPLOADS / GENERATED FILES
-# =========================
+# Runtime uploads
+runtime_uploads/*
+!runtime_uploads/.gitkeep
+
+# ML Service outputs
+ml-service/data/output/*
+!ml-service/data/output/.gitkeep
+
+# ML temporary uploads
+ml-service/runtime_uploads/*
+!ml-service/runtime_uploads/.gitkeep
+
+# Backend uploads
 backend/data/uploads/*
-backend/data/output/*
-
 !backend/data/uploads/.gitkeep
+
+# Backend outputs
+backend/data/output/*
 !backend/data/output/.gitkeep
 
-# =========================
-# TEST / DEBUG FILES
-# =========================
-test_compare.py
-test_fixes.py
-debug_fixes.py
+# Legacy python_engine folders
+python_engine/data/output/*
+python_engine/data/uploads/*
 
-# =========================
-# OS / EDITOR
-# =========================
+# Node
+node_modules/
+
+# System
 .DS_Store
-Thumbs.db
-.vscode/
-.idea/
+
+
+# Debugsdebug.log
+ml-service/python_engine/debug.log
+ml-service/python_engine/debug_fixes.py
+ml-service/python_engine/test_compare.py
+ml-service/python_engine/test_fixes.py
